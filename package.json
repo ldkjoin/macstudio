@@ -1,0 +1,30 @@
+{
+  "name": "macstudio-stock-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server/index.ts",
+    "build": "npm run build:server && vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "check": "tsc --noEmit",
+    "start": "NODE_ENV=production node dist/server/server/index.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "express": "^4.21.2",
+    "lucide-react": "^0.468.0",
+    "playwright-core": "^1.49.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
