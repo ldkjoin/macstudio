@@ -30,7 +30,7 @@ export async function runStockCheck(config: MonitorConfig): Promise<StockCheckRe
       headless: true,
       viewport: { width: 1440, height: 1200 },
       locale: 'zh-CN',
-      args: ['--disable-notifications', '--no-proxy-server']
+      args: ['--disable-notifications']
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto(config.targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });

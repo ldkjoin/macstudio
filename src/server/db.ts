@@ -155,6 +155,16 @@ export class Store {
     };
   }
 
+  consecutiveErrorCount(): number {
+    const rows = this.db.prepare('SELECT status FROM check_history ORDER BY id DESC LIMIT ?').all(historyLimit) as Array<{ status: StockStatus }>;
+    let count = 0;
+    for (const row of rows) {
+      if (row.status !== 'error') break;
+      count += 1;
+    }
+    return count;
+  }
+
   stats() {
     const row = this.db
       .prepare(

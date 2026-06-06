@@ -98,7 +98,7 @@ export interface HistoryResponse {
   events: StockEvent[];
 }
 
-export type NotificationType = 'stock' | 'summary' | 'test';
+export type NotificationType = 'stock' | 'summary' | 'test' | 'failure';
 
 export interface NotificationLog {
   id: number;

@@ -16,6 +16,12 @@ export async function sendPushoverSummaryNotification(config: MonitorConfig, mes
   return sendPushoverToRecipients(config, 'Mac Studio 服务状态总结', message, 'summary', null, false);
 }
 
+export async function sendPushoverFailureNotification(config: MonitorConfig, record: CheckRecord, consecutiveFailures: number): Promise<NotificationDraft[]> {
+  if (!isPushoverReady(config)) return [];
+  const message = buildFailureMessage(config, record, consecutiveFailures);
+  return sendPushoverToRecipients(config, 'Mac Studio 检测连续失败', message, 'failure', record.id, false);
+}
+
 export async function sendPushoverTestNotification(config: MonitorConfig): Promise<NotificationDraft[]> {
   if (!config.pushover.enabled) {
     throw new Error('请先启用 Pushover。');
@@ -122,6 +128,17 @@ function buildStockMessage(spec: ProductSpec | undefined, timestamp: string, pur
   ].join('\n');
 }
 
+function buildFailureMessage(config: MonitorConfig, record: CheckRecord, consecutiveFailures: number): string {
+  return [
+    `库存检测已连续失败 ${consecutiveFailures} 次`,
+    `型号配置：${formatSpec(config.expectedSpec)}`,
+    `最近失败时间：${formatDateTime(new Date(record.timestamp))}`,
+    `最近错误：${truncate(record.error ?? '未知错误', 500)}`,
+    `购买地址：${config.targetUrl}`,
+    '本轮连续失败告警只发送一次；后续检测恢复正常后会自动重置。'
+  ].join('\n');
+}
+
 function configuredSendCount(config: MonitorConfig): number {
   return clampSendCount(config.pushover.sendsPerRecipient);
 }
@@ -149,4 +166,9 @@ function formatSpec(spec?: ProductSpec): string {
 
 function formatDateTime(date: Date): string {
   return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function truncate(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
 }
