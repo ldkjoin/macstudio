@@ -2,10 +2,12 @@ import type { CheckRecord, CheckTrigger, MonitorConfig, NotificationLog, Product
 import { ConfigService } from './config.js';
 import { Store } from './db.js';
 import { logEvent } from './logger.js';
-import { sendPushoverStockNotification, sendPushoverSummaryNotification, sendPushoverTestNotification, type NotificationDraft } from './pushover.js';
+import { sendPushoverFailureNotification, sendPushoverStockNotification, sendPushoverSummaryNotification, sendPushoverTestNotification, type NotificationDraft } from './pushover.js';
 import { runStockCheck } from './stockChecker.js';
 
 const lastSummarySentAtKey = 'lastSummarySentAt';
+const consecutiveFailureAlertedKey = 'consecutiveFailureAlerted';
+const consecutiveFailureThreshold = 5;
 
 export class MonitorService {
   private timer: NodeJS.Timeout | null = null;
@@ -120,6 +122,7 @@ export class MonitorService {
         error: result.error
       });
       await this.handleStatusTransition(record);
+      await this.handleFailureNotification(record, config);
       await this.handleStockNotification(record, config);
       logEvent('check', { status: record.status, checkId: record.id, error: record.error });
       return record;
@@ -151,6 +154,31 @@ export class MonitorService {
     } catch (error) {
       logEvent('pushover_error', {
         checkId: record.id,
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  private async handleFailureNotification(record: CheckRecord, config: MonitorConfig): Promise<void> {
+    if (record.status !== 'error') {
+      this.store.setJson(consecutiveFailureAlertedKey, false);
+      return;
+    }
+    const consecutiveFailures = this.store.consecutiveErrorCount();
+    if (consecutiveFailures < consecutiveFailureThreshold) return;
+    if (this.store.getJson<boolean>(consecutiveFailureAlertedKey, false)) return;
+    try {
+      const results = await sendPushoverFailureNotification(config, record, consecutiveFailures);
+      this.persistNotifications(results);
+      const counts = notificationCounts(results);
+      if (counts.success > 0) {
+        this.store.setJson(consecutiveFailureAlertedKey, true);
+      }
+      logEvent(results.length > 0 ? 'pushover_failure' : 'pushover_failure_skipped', { checkId: record.id, sent: counts.success, failed: counts.failed, consecutiveFailures });
+    } catch (error) {
+      logEvent('pushover_failure_error', {
+        checkId: record.id,
+        consecutiveFailures,
         message: error instanceof Error ? error.message : String(error)
       });
     }
